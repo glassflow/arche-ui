@@ -83,8 +83,8 @@ alert rule, resuming a dashboard, loading a trace's detail view.
 Backend config   (raw JSON, versioned wire format)
     │
     ▼
-Version adapter   (src/adapters/*)   — normalizes V1/V2/V3 payload shapes into
-    │                                   one canonical internal shape
+Version adapter  (src/adapters/version/*) — normalizes V1/V2/V3 payload shapes
+    │                                        into one canonical internal shape
     ▼
 coreStore.hydrateFromConfig(config)  — the single entry point; fans out to
     │                                   per-domain hydration functions
@@ -95,9 +95,19 @@ Store slice(s)    (src/store/*)      — canonical, typed, UI-facing state
 Form defaults     (React Hook Form)  — Manager reads the slice, seeds useForm()
 ```
 
-The critical rule embedded in this diagram: **there is exactly one door into the
-store from backend data**, and it's `hydrateFromConfig` (or its scoped sibling,
-`hydrateSection`). Nothing else is allowed to write backend-shaped data into a slice.
+This layer is the **backend-config version adapter**: its only job is absorbing
+differences between wire-format versions before anything canonical sees the data.
+`src/adapters/version/*` is arche-ui's own prescriptive convention for where this
+lives — one adapter module per versioned domain, plus a factory that picks the right
+one for the payload it's handed. (The source project kept the equivalent logic at
+`src/modules/pipeline-adapters/`, with V1/V2/V3 adapters and a factory — see
+[Source lineage](#source-lineage).)
+
+By convention, the only door into the store from backend data is `hydrateFromConfig`
+(or its scoped sibling, `hydrateSection`) — the pattern keeps raw backend data out of
+slice setters, even though nothing at the type level stops a setter from being called
+with backend-shaped data directly. Follow the convention anyway; see the gotcha below
+for why.
 See [`./07-hydration-adapters.md`](./07-hydration-adapters.md) for the adapter contract
 and [`./05-zustand-slice-store.md`](./05-zustand-slice-store.md) for how slices are
 composed and what a hydration function is allowed to touch.
@@ -134,8 +144,8 @@ list and lets the user edit a label on one span.
    pushed through hydration first: `spanStore.hydrateSection('activeSpan', rawSpan)`.
 2. If the span came from an older backend version (say, a trace service that used to
    nest labels under `meta.label` and now returns `label` top-level), a version adapter
-   in `src/adapters/span/` normalizes it into the canonical internal shape before
-   hydration touches the store. See [`./07-hydration-adapters.md`](./07-hydration-adapters.md).
+   in `src/adapters/version/span/` normalizes it into the canonical internal shape
+   before hydration touches the store. See [`./07-hydration-adapters.md`](./07-hydration-adapters.md).
 3. `coreStore.hydrateSection('activeSpan', config)` fans out to the `spanStore`'s own
    hydration function, which writes the canonical fields into the slice. See
    [`./05-zustand-slice-store.md`](./05-zustand-slice-store.md) for how a slice exposes
@@ -197,3 +207,5 @@ hydration half).
 - glassflow-etl-ui/.cursor/architecture/MODULE_ARCHITECTURE.md
 - glassflow-etl-ui/.cursor/architecture/COMPONENT_ARCHITECTURE.md
 - glassflow-etl-ui/.cursor/architecture/FORM_ARCHITECTURE.md
+- glassflow-etl-ui/src/modules/pipeline-adapters/ (source of the version-adapter
+  layer: V1/V2/V3 adapters + factory, distilled here as `src/adapters/version/*`)
