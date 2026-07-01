@@ -184,64 +184,123 @@ ever fetching more than the current tenant's data.
    }
    ```
 
-3. **Cancel the in-flight page fetch on scroll-away or filter change — reuse
-   the `AbortController` pattern from [`./03-service-layer.md`](./03-service-layer.md)
-   verbatim.** The component doesn't invent its own cancellation logic; it
-   holds one controller per logical "current query" and aborts the previous
-   one the instant a new one starts.
+3. **Fetch one page per trigger, cancel the in-flight one on supersede —
+   reuse the `AbortController` pattern from
+   [`./03-service-layer.md`](./03-service-layer.md) verbatim.** The hook does
+   not drain the cursor in a loop; it loads exactly one page when asked
+   (on mount, and again each time the caller says "the user scrolled near
+   the bottom"), tracks `hasMore`, and aborts a still-in-flight page the
+   instant the trace/tenant/filter changes so a slow, stale response can
+   never land after a newer one.
 
    ```tsx
    // src/modules/traces/hooks/useSpanPages.ts
    'use client'
 
-   import { useEffect, useRef, useState } from 'react'
+   import { useCallback, useEffect, useRef, useState } from 'react'
    import { traceService } from '@/src/services/trace-service'
-   import type { Span } from '@/src/lib/trace-client-interface'
+   import type { Span, TraceClientConfig } from '@/src/lib/trace-client-interface'
 
-   export function useSpanPages(traceId: string, tenantId: string, filterKey: string) {
+   export function useSpanPages(
+     traceId: string,
+     tenantId: string,
+     filterKey: string,
+     config: TraceClientConfig,
+   ) {
      const [spans, setSpans] = useState<Span[]>([])
+     const [hasMore, setHasMore] = useState(true)
+     const [isLoading, setIsLoading] = useState(false)
      const controllerRef = useRef<AbortController | null>(null)
+     const cursorRef = useRef<string | undefined>(undefined)
+
+     const loadNextPage = useCallback(async () => {
+       // Already fetching this trace/tenant/filter's current page, or there's
+       // nothing left to fetch — a scroll-near-bottom trigger while a page is
+       // still in flight is a no-op, not a second overlapping request.
+       if (controllerRef.current || !hasMore) return
+
+       const controller = new AbortController()
+       controllerRef.current = controller
+       setIsLoading(true)
+
+       try {
+         const page = await traceService.listSpansPage(traceId, tenantId, config, {
+           cursor: cursorRef.current,
+           signal: controller.signal,
+         })
+         if (controller.signal.aborted) return
+         setSpans((prev) => [...prev, ...page.spans])
+         cursorRef.current = page.nextCursor ?? undefined
+         setHasMore(page.nextCursor !== null)
+       } catch (error) {
+         if (controller.signal.aborted) return // expected — superseded, not a failure
+         throw error
+       } finally {
+         if (controllerRef.current === controller) controllerRef.current = null
+         setIsLoading(false)
+       }
+     }, [traceId, tenantId, config, hasMore])
 
      useEffect(() => {
        // A new filter (or a new trace) supersedes whatever page fetch is
-       // still in flight — abort it before starting the replacement so a
-       // slow, stale response can never land after a newer one.
+       // still in flight and resets pagination state back to page one.
        controllerRef.current?.abort()
-       const controller = new AbortController()
-       controllerRef.current = controller
-
+       controllerRef.current = null
+       cursorRef.current = undefined
        setSpans([])
-       let cursor: string | undefined
-
-       async function loadPages() {
-         do {
-           const page = await traceService.listSpansPage(traceId, tenantId, config, {
-             cursor,
-             signal: controller.signal,
-           })
-           if (controller.signal.aborted) return
-           setSpans((prev) => [...prev, ...page.spans])
-           cursor = page.nextCursor ?? undefined
-         } while (cursor)
-       }
-
-       loadPages().catch((error) => {
-         if (controller.signal.aborted) return // expected — superseded, not a failure
-         throw error
-       })
-
-       return () => controller.abort()
+       setHasMore(true)
      }, [traceId, tenantId, filterKey])
 
-     return spans
+     useEffect(() => {
+       return () => controllerRef.current?.abort()
+     }, [])
+
+     return { spans, hasMore, isLoading, loadNextPage }
    }
    ```
 
    This is the same "signal comes from the caller, cleanup runs regardless of
    which path got there" contract as [`./03-service-layer.md`](./03-service-layer.md)
    — the only new piece is *where* the controller gets created (a component
-   hook reacting to filter/trace changes) rather than a proxy route reacting
-   to `request.signal`.
+   hook reacting to filter/trace changes and to scroll-driven page requests)
+   rather than a proxy route reacting to `request.signal`.
+
+   Wire `loadNextPage` to the virtualizer built in step 1 — the range the
+   virtualizer reports is what decides *when* the next page is worth fetching,
+   not a timer or an eager loop:
+
+   ```tsx
+   // inside SpanTable, alongside the useVirtualizer call from step 1
+   const { spans, hasMore, isLoading, loadNextPage } = useSpanPages(
+     traceId,
+     tenantId,
+     filterKey,
+     config,
+   )
+
+   const virtualizer = useVirtualizer({
+     count: spans.length,
+     getScrollElement: () => scrollRef.current,
+     estimateSize: () => ROW_HEIGHT_PX,
+     overscan: 12,
+   })
+
+   useEffect(() => {
+     const [lastItem] = virtualizer.getVirtualItems().slice(-1)
+     if (!lastItem) return
+     // Within 20 rows of the end of what's loaded so far — and not already
+     // fetching, and more pages exist — is "near the bottom."
+     if (lastItem.index >= spans.length - 20 && hasMore && !isLoading) {
+       loadNextPage()
+     }
+   }, [virtualizer.getVirtualItems(), spans.length, hasMore, isLoading, loadNextPage])
+   ```
+
+   50,000 rows at `PAGE_SIZE = 1_000` is now up to 50 requests total, but they
+   fire one at a time as the user actually scrolls that far — not 50
+   back-to-back requests the moment the trace/tenant/filter changes. A tenant
+   whose view of a trace never scrolls past row 3,000 triggers three page
+   fetches, not fifty.
 
 4. **Memoize at the derived-data boundary, not everywhere.** The expensive
    step in a trace table isn't rendering a row, it's re-deriving sorted or
@@ -331,7 +390,6 @@ ever fetching more than the current tenant's data.
 
 Net-new. No prior single-tenant version of this doc exists — the source app
 had no multi-tenant load or cost surface. The one reused piece of machinery
-is the cancellation pattern:
+is the timeout + `AbortController` cancellation pattern:
 
 - glassflow-etl-ui/src/services/kafka-service.ts
-- glassflow-etl-ui/src/services/clickhouse-service.ts
