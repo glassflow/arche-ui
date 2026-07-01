@@ -5,7 +5,11 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { dirname, resolve, join } from 'node:path'
 
 const REQUIRED = ['What & why', 'The shape', 'Build it', 'Rules & gotchas', 'Source lineage']
-const FORBIDDEN = ['TODO', 'TBD', 'FIXME', 'coming soon', 'fill in', 'lorem ipsum']
+// Whole-word placeholder markers (word-boundary match, so "Todoist" / "tbdomain" don't false-positive).
+const WORD_TOKENS = ['TODO', 'TBD', 'FIXME']
+// Multi-word placeholder phrases (substring match is safe — these don't occur in normal prose).
+// Note: "fill in" was intentionally dropped — it collides with legitimate prose ("fill in the form").
+const PHRASE_TOKENS = ['coming soon', 'lorem ipsum']
 
 function targets() {
   const args = process.argv.slice(2)
@@ -27,8 +31,11 @@ function checkFile(path) {
   for (const sec of REQUIRED) {
     if (!headings.includes(sec)) errors.push(`missing section "## ${sec}"`)
   }
-  for (const tok of FORBIDDEN) {
-    if (text.toLowerCase().includes(tok.toLowerCase())) errors.push(`forbidden token "${tok}"`)
+  for (const tok of WORD_TOKENS) {
+    if (new RegExp(`\\b${tok}\\b`, 'i').test(text)) errors.push(`forbidden token "${tok}"`)
+  }
+  for (const tok of PHRASE_TOKENS) {
+    if (text.toLowerCase().includes(tok)) errors.push(`forbidden phrase "${tok}"`)
   }
   if (CHECK_LINKS) {
     // Internal relative links only: [txt](./x.md) or [txt](../x.md) or [txt](x.md#anchor)
