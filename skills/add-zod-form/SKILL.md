@@ -86,215 +86,84 @@ existing schema, config, and Renderer instead of starting a new set.
 ## Worked example: an "alert rule" form
 
 A threshold, a rolling time window, and a severity — used identically for
-both "create rule" and "edit rule."
+both "create rule" and "edit rule." This walks the same six steps above
+against that scenario, showing only the delta each step adds — the wiring
+between artifacts, not the full listing. For the complete end-to-end code
+(all four fields, both selects, the whole Renderer) see
+[`../../docs/06-forms-zod-manager-renderer.md`](../../docs/06-forms-zod-manager-renderer.md).
 
-1. Schema, in `src/schemas/alert-rule.schema.ts`:
+1. **Schema** — `src/schemas/alert-rule.schema.ts` is where `threshold`
+   gets its actual rule, not a Renderer conditional:
 
    ```ts
-   import { z } from 'zod'
+   threshold: z.coerce.number().positive('Threshold must be greater than 0'),
+   ```
 
-   export const alertRuleSchema = z.object({
-     name: z.string().min(1, 'Name is required'),
-     threshold: z.coerce.number().positive('Threshold must be greater than 0'),
-     window: z.enum(['5m', '15m', '1h', '24h']),
-     severity: z.enum(['info', 'warning', 'critical']),
+   `AlertRuleFormValues` is `z.infer<typeof alertRuleSchema>` — no hand-
+   written interface.
+
+2. **Config** — `src/config/alert-rule-form-config.ts` mirrors the schema's
+   field name and adds only presentation. The `threshold` entry carries a
+   placeholder, nothing the schema doesn't already enforce:
+
+   ```ts
+   threshold: { name: 'threshold', label: 'Threshold', placeholder: 'e.g. 0.05', type: 'text' },
+   ```
+
+3. **Manager** — `src/modules/alerts/AlertRuleFormManager.tsx` is the only
+   place `alertRuleSchema` meets `useForm`, and the only place `onSave`'s
+   shape is decided:
+
+   ```tsx
+   const form = useForm<AlertRuleFormValues>({
+     resolver: zodResolver(alertRuleSchema),
+     defaultValues,
+     mode: 'onBlur',
    })
 
-   export type AlertRuleFormValues = z.infer<typeof alertRuleSchema>
+   const handleSubmit = form.handleSubmit(async (values) => {
+     await onSave(values) // values: AlertRuleFormValues, already parsed
+   })
    ```
 
-2. Config, in `src/config/alert-rule-form-config.ts`:
+   `form.control` is what gets passed down — the Renderer never sees `form`
+   itself, only `control`.
 
-   ```ts
-   export const AlertRuleFormConfig = {
-     fields: {
-       name: { name: 'name', label: 'Rule name', placeholder: 'e.g. High error rate', type: 'text' },
-       threshold: { name: 'threshold', label: 'Threshold', placeholder: 'e.g. 0.05', type: 'text' },
-       window: {
-         name: 'window',
-         label: 'Rolling window',
-         type: 'select',
-         options: [
-           { label: '5 minutes', value: '5m' },
-           { label: '15 minutes', value: '15m' },
-           { label: '1 hour', value: '1h' },
-           { label: '24 hours', value: '24h' },
-         ],
-       },
-       severity: {
-         name: 'severity',
-         label: 'Severity',
-         type: 'select',
-         options: [
-           { label: 'Info', value: 'info' },
-           { label: 'Warning', value: 'warning' },
-           { label: 'Critical', value: 'critical' },
-         ],
-       },
-     },
-   }
-   ```
-
-3. Manager, in `src/modules/alerts/AlertRuleFormManager.tsx`:
+4. **Renderer** — `src/modules/alerts/AlertRuleFormRenderer.tsx` takes that
+   `control` and, for the `threshold` field alone, wires it through
+   `<FormField>` to the config entry from step 2:
 
    ```tsx
-   'use client'
-
-   import { useForm, FormProvider } from 'react-hook-form'
-   import { zodResolver } from '@hookform/resolvers/zod'
-   import { Button } from '@/src/components/ui/button'
-   import { AlertRuleFormRenderer } from './AlertRuleFormRenderer'
-   import { alertRuleSchema, type AlertRuleFormValues } from '@/src/schemas/alert-rule.schema'
-
-   interface AlertRuleFormManagerProps {
-     defaultValues: AlertRuleFormValues
-     readOnly?: boolean
-     onSave: (values: AlertRuleFormValues) => void | Promise<void>
-     onDiscard?: () => void
-   }
-
-   export function AlertRuleFormManager({ defaultValues, readOnly, onSave, onDiscard }: AlertRuleFormManagerProps) {
-     const form = useForm<AlertRuleFormValues>({
-       resolver: zodResolver(alertRuleSchema),
-       defaultValues,
-       mode: 'onBlur',
-     })
-
-     const handleSubmit = form.handleSubmit(async (values) => {
-       await onSave(values)
-     })
-
-     return (
-       <FormProvider {...form}>
-         <form onSubmit={handleSubmit} className="space-y-6">
-           <AlertRuleFormRenderer control={form.control} readOnly={readOnly} />
-           <div className="flex justify-end gap-2">
-             <Button variant="outline" type="button" onClick={onDiscard}>
-               Cancel
-             </Button>
-             <Button variant="primary" type="submit" disabled={readOnly}>
-               Save rule
-             </Button>
-           </div>
-         </form>
-       </FormProvider>
-     )
-   }
+   <FormField
+     control={control}
+     name={threshold.name as 'threshold'}
+     render={({ field }) => (
+       <FormItem>
+         <FormLabel>{threshold.label}</FormLabel>
+         <FormControl>
+           <Input {...field} placeholder={threshold.placeholder} disabled={readOnly} />
+         </FormControl>
+         <FormMessage />
+       </FormItem>
+     )}
+   />
    ```
 
-4. Renderer, in `src/modules/alerts/AlertRuleFormRenderer.tsx`:
+   `name`, `label`, and `placeholder` all come from `AlertRuleFormConfig`,
+   not literals — the other three fields (`name`, `window`, `severity`)
+   follow the identical pattern, one `<FormField>` each, which is why the
+   doc's full listing isn't repeated here.
 
-   ```tsx
-   'use client'
-
-   import type { Control } from 'react-hook-form'
-   import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/src/components/ui/form'
-   import { Input } from '@/src/components/ui/input'
-   import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/src/components/ui/select'
-   import { AlertRuleFormConfig } from '@/src/config/alert-rule-form-config'
-   import type { AlertRuleFormValues } from '@/src/schemas/alert-rule.schema'
-
-   interface AlertRuleFormRendererProps {
-     control: Control<AlertRuleFormValues>
-     readOnly?: boolean
-   }
-
-   export function AlertRuleFormRenderer({ control, readOnly }: AlertRuleFormRendererProps) {
-     const { name, threshold, window, severity } = AlertRuleFormConfig.fields
-
-     return (
-       <div className="space-y-4">
-         <FormField
-           control={control}
-           name={name.name as 'name'}
-           render={({ field }) => (
-             <FormItem>
-               <FormLabel>{name.label}</FormLabel>
-               <FormControl>
-                 <Input {...field} placeholder={name.placeholder} disabled={readOnly} />
-               </FormControl>
-               <FormMessage />
-             </FormItem>
-           )}
-         />
-
-         <FormField
-           control={control}
-           name={threshold.name as 'threshold'}
-           render={({ field }) => (
-             <FormItem>
-               <FormLabel>{threshold.label}</FormLabel>
-               <FormControl>
-                 <Input {...field} placeholder={threshold.placeholder} disabled={readOnly} />
-               </FormControl>
-               <FormMessage />
-             </FormItem>
-           )}
-         />
-
-         <FormField
-           control={control}
-           name={window.name as 'window'}
-           render={({ field }) => (
-             <FormItem>
-               <FormLabel>{window.label}</FormLabel>
-               <Select onValueChange={field.onChange} value={field.value} disabled={readOnly}>
-                 <FormControl>
-                   <SelectTrigger>
-                     <SelectValue />
-                   </SelectTrigger>
-                 </FormControl>
-                 <SelectContent>
-                   {window.options.map((opt) => (
-                     <SelectItem key={opt.value} value={opt.value}>
-                       {opt.label}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-               <FormMessage />
-             </FormItem>
-           )}
-         />
-
-         <FormField
-           control={control}
-           name={severity.name as 'severity'}
-           render={({ field }) => (
-             <FormItem>
-               <FormLabel>{severity.label}</FormLabel>
-               <Select onValueChange={field.onChange} value={field.value} disabled={readOnly}>
-                 <FormControl>
-                   <SelectTrigger>
-                     <SelectValue />
-                   </SelectTrigger>
-                 </FormControl>
-                 <SelectContent>
-                   {severity.options.map((opt) => (
-                     <SelectItem key={opt.value} value={opt.value}>
-                       {opt.label}
-                     </SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-               <FormMessage />
-             </FormItem>
-           )}
-         />
-       </div>
-     )
-   }
-   ```
-
-5. Defaults: a "create rule" call site passes schema-level defaults
-   (`{ name: '', threshold: 0, window: '15m', severity: 'warning' }`); an
-   "edit rule" call site passes `defaultValues` hydrated from the store's
-   loaded rule via the pipeline in
+5. **Defaults** — the call site, not the Manager, decides which
+   `defaultValues` this Manager gets: a "create rule" call site passes
+   schema-level fallbacks (`{ name: '', threshold: 0, window: '15m',
+   severity: 'warning' }`); an "edit rule" call site passes `defaultValues`
+   hydrated from the store's loaded rule via
    [`../../docs/07-hydration-adapters.md`](../../docs/07-hydration-adapters.md).
-   Both go through the identical `AlertRuleFormManager` +
-   `AlertRuleFormRenderer` — only `defaultValues` and `onSave` differ.
+   Both point at the same `AlertRuleFormManager` + `AlertRuleFormRenderer`
+   pair — only `defaultValues` and `onSave` differ between them.
 
-6. Verify: submit the form empty and confirm "Name is required" and
+6. **Verify** — submit the form empty and confirm "Name is required" and
    "Threshold must be greater than 0" render under their fields via
    `<FormMessage>`; type `-1` into threshold and confirm the same positive-
    number message appears; then fill in valid values and confirm `onSave`
