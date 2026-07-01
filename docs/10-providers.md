@@ -39,6 +39,12 @@ ThemeProvider                    outermost — sets data-theme before first pain
               {children}
 ```
 
+Note: the source project's current `src/app/layout.tsx` actually wires the
+plain `AnalyticsProvider` at this slot, not `AnalyticsProviderWithUserConsent`;
+this doc documents the consent variant as the canonical/intended layer because
+it's the one that satisfies the consent-synced-to-store requirement described
+above.
+
 Each provider is a `'use client'` wrapper — server components can't hold
 `useState`/`useEffect`, and every provider here does. The nesting is
 declared once, in the root layout, and nowhere else; a feature never
