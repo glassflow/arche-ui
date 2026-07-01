@@ -1,0 +1,3 @@
+# Mock API Layer
+
+This seed file provides a domain-agnostic runtime toggle for enabling mock API mode. Copy `mock-api.ts` into `src/utils/mock-api.ts` and adapt as needed for your application. The two exported functions—`isMockMode()` and `getApiUrl()`—allow you to check whether the app should serve fixtures instead of calling the real backend, and to resolve endpoint names to the appropriate mock or real API prefix. Fixture files should be typed against the same Zod schemas as real backend responses, ensuring consistency and compatibility (see `docs/14-mock-api-layer.md` for architecture and usage patterns).
