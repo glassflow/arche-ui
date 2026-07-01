@@ -1,0 +1,26 @@
+[
+  {
+    "name": "app shell (shared entry chunk)",
+    "path": ".next/static/chunks/main-*.js",
+    "limit": "120 kB",
+    "comment": "Shared entry chunk loaded on every route — sidebar, topbar, providers. This is the floor every route's first-load JS pays on top of."
+  },
+  {
+    "name": "shell / list views — e.g. /dashboard/[tenantId]",
+    "path": ".next/static/chunks/pages/dashboard-*.js",
+    "limit": "180 kB",
+    "comment": "Route class: shell / list views. Ceiling per docs/16-multitenant-performance.md route-class table."
+  },
+  {
+    "name": "heavy data views — e.g. /dashboard/[tenantId]/traces/[traceId]",
+    "path": ".next/static/chunks/pages/traces-*.js",
+    "limit": "220 kB",
+    "comment": "Route class: heavy data views. Higher ceiling is a deliberate, reviewed allowance for the virtualization library and table chrome — not an escape hatch for unrelated bloat."
+  },
+  {
+    "name": "settings / low-traffic — e.g. /dashboard/[tenantId]/settings/*",
+    "path": ".next/static/chunks/pages/settings-*.js",
+    "limit": "150 kB",
+    "comment": "Route class: settings / low-traffic."
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "//": "Seed config for the `typecheck` CI job — see ../../docs/15-architectural-guardrails.md (job table). Run as `tsc --noEmit -p seed/ci/tsconfig.ci.json` in its own CI step, isolated from the app build, so a slow build can never hide a fast typecheck failure — the two run in parallel and both must go green independently.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": false,
+    "incremental": false
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", ".next", "dist", "build"]
+}
