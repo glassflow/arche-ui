@@ -91,17 +91,17 @@ error) if `DATABASE_URL` is unset — migration is opt-in per deployment.
 
 ```
 pull_request.yaml  (PR opened/synced)  ─┐
-main.yaml          (push to main)      ─┼─► test.yaml (reusable: lint + pnpm test:run)
-tag.yaml            (push tag v*)      ─┘         │  needs: test
-                                                   ▼
-                                     build_image.yaml (reusable, workflow_call)
-                                       ├─ matrix: linux/amd64, linux/arm64
-                                       │    each: buildx build, push-by-digest
-                                       │    to ghcr.io/glassflow/glassflow-etl-ui
-                                       ├─ merge job: docker buildx imagetools create
-                                       │    → one multi-arch manifest per tag rule
-                                       └─ tag.yaml also creates a GitHub Release
-                                            after the image is published
+main.yaml          (push to main)      ─┴─► test.yaml (reusable: lint + pnpm test:run)
+                                                    │  needs: test
+                                                    ▼
+tag.yaml           (push tag v*)      ────────► build_image.yaml (reusable, workflow_call)
+                                                   ├─ matrix: linux/amd64, linux/arm64
+                                                   │    each: buildx build, push-by-digest
+                                                   │    to ghcr.io/glassflow/glassflow-etl-ui
+                                                   ├─ merge job: docker buildx imagetools create
+                                                   │    → one multi-arch manifest per tag rule
+                                                   └─ tag.yaml also creates a GitHub Release
+                                                        after the image is published
 ```
 
 Each caller passes its own `tags` input to `build_image.yaml` — PRs get

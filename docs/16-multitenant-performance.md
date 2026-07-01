@@ -334,6 +334,11 @@ ever fetching more than the current tenant's data.
    is a deliberate, reviewed allowance for the virtualization library and
    table chrome, not an escape hatch for unrelated bloat.
 
+   These per-route ceilings sit on top of one more budget that isn't a route
+   class at all: the **app shell / shared entry chunk** (`main-*.js`, ~120 KB)
+   that every route loads before its own route-class bundle — the floor every
+   route's first-load JS pays on top of, not part of any row above.
+
 ## Rules & gotchas
 
 - **Never fetch all tenants' data — not even for an admin or superuser
