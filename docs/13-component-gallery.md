@@ -43,8 +43,13 @@ That gives the gallery three jobs at once:
 
 ## The shape
 
+The gallery is rooted at `src/app/(main)/dev/components/`. The exact set of
+category folders will vary by project and grows as the design system does —
+what follows is a representative layout, not an exhaustive list of every
+category a given repo happens to have today:
+
 ```
-app/dev/components/
+src/app/(main)/dev/components/
 ├── layout.tsx               # sidebar shell — server component
 ├── page.tsx                 # overview grid — server component
 ├── GalleryNav.tsx            # sidebar nav + Cmd-K search palette — client
@@ -53,14 +58,25 @@ app/dev/components/
 │                              # VariantGrid, Preview, CodeBlock
 ├── foundations/page.tsx       # typography, tokens, spacing, radius
 ├── buttons/page.tsx           # branded Button variants, sizes, states
-├── display/page.tsx           # Card, Badge, DataTable, Avatar, EmptyState
-├── forms/page.tsx              # Input, Select, Checkbox, Switch, Textarea
-├── overlays/page.tsx           # Dialog, Popover, DropdownMenu, Tooltip
-├── navigation/page.tsx         # Tabs, Accordion
-├── feedback/page.tsx           # Alert, Sonner toasts, Skeleton, chips
+├── display/page.tsx           # cards, chips, and data-display composites
+├── forms/page.tsx              # form field primitives and their states
+├── overlays/page.tsx           # dialogs, popovers, menus, tooltips
+├── navigation/page.tsx         # tabbed and disclosure-style navigation
+├── feedback/page.tsx           # alerts, toasts, loading and status chips
 ├── patterns/page.tsx            # composite, multi-primitive patterns
 └── anti-patterns/page.tsx        # BAD vs GOOD, side by side, lint-backed
 ```
+
+Categories such as `display`, `forms`, `overlays`, `navigation`, and
+`feedback` are the common shapes most design systems end up needing, but a
+given repo may add more (drawers, shell chrome, utility primitives) as its
+component inventory grows. The two folders that are **not** optional are
+`_components/` — the private, route-less home for the shared authoring
+primitives — and `anti-patterns/` — the lint-backed enforcement page
+described below. Treat the rest of the list as a starting point to adapt,
+not a spec to replicate verbatim; a gallery that hardcodes an exhaustive
+category list will itself go stale the moment a real project adds a
+category the list doesn't mention.
 
 The `_components/` prefix is load-bearing, not cosmetic — Next.js App Router
 treats an underscore-prefixed folder as private and never creates a route
@@ -120,8 +136,8 @@ reaching for it.
 2. **Write the section using only the shared primitives:**
 
    ```tsx
-   // app/dev/components/display/page.tsx (excerpt)
-   import { StatusBadge } from '@/components/common/status-badge'
+   // src/app/(main)/dev/components/display/page.tsx (excerpt)
+   import { StatusBadge } from '@/components/shared/StatusBadge'
    import { Section, VariantGrid, Preview, CodeBlock } from '../_components/Section'
 
    ;<Section
