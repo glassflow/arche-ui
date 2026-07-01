@@ -6,6 +6,12 @@ built or imported inside `arche-ui` itself — they reference `react`, `next`,
 primitives and `theme.css` tokens, none of which exist in this repo. Copy
 them into a consuming project and they become real, working code there.
 
+**On copy, repoint the imports to your project's conventions.** These files
+use the `@/src/...` path alias and import `cn` (the standard clsx + tailwind-merge
+helper) from `@/src/utils/common.client`. Adjust both to match your project — a
+plain `@/...` alias and wherever your `cn` lives (commonly `@/lib/utils`) — or
+the imports will fail silently on paste.
+
 See [`../../docs/13-component-gallery.md`](../../docs/13-component-gallery.md)
 for the full rationale, the worked "add a section" example, and the rules
 that keep the gallery from going stale.
