@@ -15,6 +15,7 @@ gets introduced.
 |---|---|---|---|
 | `boundaries` | `dependency-cruiser` | [`dependency-cruiser.config.cjs`](./dependency-cruiser.config.cjs) | `shared/` importing `modules/*`; `ui/` importing `common/`, `shared/`, or `modules/*`; any circular dependency; a module importing another module's `components/` directly |
 | `token-contract` | custom ESLint rule + regex script | [`eslint-token-contract.config.mjs`](./eslint-token-contract.config.mjs) | hardcoded hex (`#e22c2c`), `rgba(...)` literals, raw Tailwind color utilities (`bg-red-500`, `text-gray-400`, `border-zinc-700`) anywhere outside `base.css`/`theme.css` |
+| `tenant-scope` | custom ESLint plugin | [`eslint-tenant-scope.config.mjs`](./eslint-tenant-scope.config.mjs) | a function building a `/ui-api/w/...` URL with no `workspaceId` parameter; reading the active tenant from `localStorage`/`sessionStorage` to scope a request; a proxy route under `app/ui-api/w/[workspaceId]/**` that never calls `assertMembership` |
 | `bundle-budget` | `size-limit` | [`size-limit.config.json`](./size-limit.config.json) | any route's first-load JS exceeding its per-route ceiling |
 | `web-vitals` | Lighthouse CI | [`lighthouserc.cjs`](./lighthouserc.cjs) | LCP, CLS, or TBT regressing past the threshold recorded against the last accepted baseline |
 | `typecheck` | `tsc --noEmit` | [`tsconfig.ci.json`](./tsconfig.ci.json) | any type error; `strict: true`, run in isolation from the app build |
@@ -48,6 +49,11 @@ in this repo are expected, not defects. On copy, repoint:
 - `eslint-token-contract.config.mjs` — the `files`/`ignores` globs to your
   source root, and confirm the exempt filenames (`base.css`, `theme.css`)
   match your actual token files.
+- `eslint-tenant-scope.config.mjs` — the `files` globs to your source root,
+  and, if your project names them differently, the `TENANT_PATH_PREFIX`
+  (`/ui-api/w/`) and `ASSERT_FN` (`assertMembership`) constants at the top so
+  they match your actual tenant path prefix and membership-assertion helper
+  from [`../../docs/17-workspace-tenancy-model.md`](../../docs/17-workspace-tenancy-model.md).
 - `size-limit.config.json` — the `path` globs (currently `.next/static/chunks/...`
   placeholders) to your build output's real chunk names per route.
 - `lighthouserc.cjs` — the `url` array to your project's real routes and

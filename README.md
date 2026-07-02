@@ -30,11 +30,15 @@ the AI-observability platform frontend.
 | 14 | [`mock-api-layer.md`](./docs/14-mock-api-layer.md) | Mock API layer | Extracted / proven |
 | 15 | [`architectural-guardrails.md`](./docs/15-architectural-guardrails.md) | Architectural guardrails | Net-new / prescriptive |
 | 16 | [`multitenant-performance.md`](./docs/16-multitenant-performance.md) | Multi-tenant performance | Net-new / prescriptive |
+| 17 | [`workspace-tenancy-model.md`](./docs/17-workspace-tenancy-model.md) | Workspace tenancy model | Net-new / prescriptive |
 
 Docs 00–14 are pulled from a shipped codebase (GlassFlow ClickHouse ETL UI) and
-describe patterns already proven in production. Docs 15–16 are net-new guidance
+describe patterns already proven in production. Docs 15–17 are net-new guidance
 written for the first downstream consumer, the multi-tenant AI-observability
-frontend — they prescribe a posture rather than extract one.
+frontend — they prescribe a posture rather than extract one. Doc 17 is distilled
+from GlassFlow's *first* product (a separate Preact/MobX repo) rather than the
+ClickHouse ETL UI, since that source app was single-tenant and had no tenancy
+model to extract.
 
 ## Skills index
 
@@ -67,13 +71,14 @@ Each skill lives in `skills/<name>/SKILL.md` and is invoked directly by name.
    `page.tsx` are project-authored shell code, not part of this seed — see
    [`docs/13-component-gallery.md`](./docs/13-component-gallery.md).
 5. Copy the files under `seed/ci/` (`dependency-cruiser.config.cjs`,
-   `eslint-token-contract.config.mjs`, `eslint.config.mjs`, `lighthouserc.cjs`,
-   `size-limit.config.json`, `tsconfig.ci.json`) to the new project's repo root,
-   then wire each into a required CI status check per the job table in
+   `eslint-token-contract.config.mjs`, `eslint-tenant-scope.config.mjs`,
+   `eslint.config.mjs`, `lighthouserc.cjs`, `size-limit.config.json`,
+   `tsconfig.ci.json`) to the new project's repo root, then wire each into a
+   required CI status check per the job table in
    [`docs/15-architectural-guardrails.md`](./docs/15-architectural-guardrails.md)
-   (`boundaries`, `token-contract`, `bundle-budget`, `web-vitals`, `typecheck`,
-   `lint`). Repoint the placeholder paths in each config (source root globs,
+   (`boundaries`, `token-contract`, `tenant-scope`, `bundle-budget`,
+   `web-vitals`, `typecheck`, `lint`). Repoint the placeholder paths in each config (source root globs,
    build-output chunk paths, route URLs, base tsconfig path) to the new project's
    real layout — see `seed/ci/README.md` for the exact per-file repoint list.
-6. Read the docs in order, `00` through `16`, to absorb the conventions before
+6. Read the docs in order, `00` through `17`, to absorb the conventions before
    writing code.

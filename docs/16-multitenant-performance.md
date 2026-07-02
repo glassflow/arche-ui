@@ -2,6 +2,11 @@
 
 > **Net-new / prescriptive** — designed for the new project, not extracted from a shipped codebase.
 
+> **Terminology.** This doc's `tenantId` is the `workspaceId` of
+> [`./17-workspace-tenancy-model.md`](./17-workspace-tenancy-model.md) — the
+> workspace *is* the tenant. Doc 17 defines the tenancy model; this doc is
+> performance and isolation *under* it. Read them as one pair.
+
 ## What & why
 
 The source app was a single-tenant internal tool: one Kafka cluster, one

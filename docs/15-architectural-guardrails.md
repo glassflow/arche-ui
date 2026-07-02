@@ -43,8 +43,8 @@ increasing order of judgment required:
 
 ```
 Layer 1 — Hard gates (CI-failing, every PR)
-    │  dependency-cruiser · token-contract lint · size-limit ·
-    │  Lighthouse CI · tsc --noEmit · ESLint no-explicit-any
+    │  dependency-cruiser · token-contract lint · tenant-scope lint ·
+    │  size-limit · Lighthouse CI · tsc --noEmit · ESLint no-explicit-any
     │  Deterministic. No judgment call. Red X blocks merge.
     ▼
 Layer 2 — Agentic review (on-demand + PR)
@@ -91,13 +91,14 @@ abstraction," only "does this violate a provable, mechanical rule."
 
 ### Layer 1 — CI job list
 
-Six jobs, each mapped to a seed config in [`../seed/ci/`](../seed/ci/). Every
+Seven jobs, each mapped to a seed config in [`../seed/ci/`](../seed/ci/). Every
 job is a required status check — a red job blocks merge, full stop.
 
 | CI job | Tool | Config file | Fails on |
 |---|---|---|---|
 | `boundaries` | `dependency-cruiser` | `../seed/ci/dependency-cruiser.config.cjs` | `shared/` importing `modules/*`; `ui/` importing `common/`, `shared/`, or `modules/*`; any circular dependency; a module importing another module's `components/` directly |
 | `token-contract` | custom ESLint rule + regex script | `../seed/ci/eslint-token-contract.config.mjs` | hardcoded hex (`#e22c2c`), `rgba(...)` literals, raw Tailwind color utilities (`bg-red-500`, `text-gray-400`, `border-zinc-700`) anywhere outside `base.css`/`theme.css` |
+| `tenant-scope` | custom ESLint plugin | `../seed/ci/eslint-tenant-scope.config.mjs` | a function building a `/ui-api/w/...` URL with no `workspaceId` parameter; reading the active tenant from `localStorage`/`sessionStorage` to scope a request; a proxy route under `app/ui-api/w/[workspaceId]/**` that never calls `assertMembership` |
 | `bundle-budget` | `size-limit` | `../seed/ci/size-limit.config.json` | any route's first-load JS exceeding its per-route ceiling (see [`./16-multitenant-performance.md`](./16-multitenant-performance.md) for how ceilings are set per route class) |
 | `web-vitals` | Lighthouse CI | `../seed/ci/lighthouserc.cjs` | LCP, CLS, or TBT regressing past the threshold recorded against the last accepted baseline |
 | `typecheck` | `tsc --noEmit` | `../seed/ci/tsconfig.ci.json` | any type error; this config sets `strict: true` and is the same `tsconfig` the app builds with, run in isolation so a slow build doesn't hide a fast typecheck failure |
@@ -112,6 +113,16 @@ the direct enforcement of the token rule in
 [`./08-design-tokens.md`](./08-design-tokens.md): every color is a CSS
 variable reference, never a literal, and this job is what turns "never a
 literal" from a sentence in a doc into a build failure on line N of a diff.
+`tenant-scope` is the direct enforcement of the tenancy rules in
+[`./17-workspace-tenancy-model.md`](./17-workspace-tenancy-model.md): because
+that doc makes `workspaceId` a required path segment (`/ui-api/w/[workspaceId]`),
+every tenant-scoped call has an AST-visible signature, so "never forget to scope
+a tenant call" becomes a mechanical rule rather than a review-checklist item —
+the first product's optional `organization_id` query param had no such signature
+and could not have been gated this way. It is also the mechanical floor under
+[`./16-multitenant-performance.md`](./16-multitenant-performance.md)'s
+required-`tenantId`-argument rule: a missing scope is a cross-tenant leak, which
+in a hosted product is an incident, not a lint nit.
 
 **Example scenario.** A PR adds:
 
