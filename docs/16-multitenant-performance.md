@@ -1,6 +1,10 @@
 # Multi-tenant performance
 
-> **Net-new / prescriptive** — designed for the new project, not extracted from a shipped codebase.
+> **Net-new / profile: observability-saas** — designed for the first consumer
+> (a multi-tenant hosted SaaS, workspace-as-tenant), not extracted from a
+> shipped codebase. Applies to products that adopt the tenancy shape of
+> [`./17-workspace-tenancy-model.md`](./17-workspace-tenancy-model.md); see the
+> profile note in the [README](../README.md).
 
 > **Terminology.** This doc's `tenantId` is the `workspaceId` of
 > [`./17-workspace-tenancy-model.md`](./17-workspace-tenancy-model.md) — the

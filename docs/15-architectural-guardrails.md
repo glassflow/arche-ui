@@ -122,7 +122,11 @@ the first product's optional `organization_id` query param had no such signature
 and could not have been gated this way. It is also the mechanical floor under
 [`./16-multitenant-performance.md`](./16-multitenant-performance.md)'s
 required-`tenantId`-argument rule: a missing scope is a cross-tenant leak, which
-in a hosted product is an incident, not a lint nit.
+in a hosted product is an incident, not a lint nit. `tenant-scope` is also the
+one profile-conditional row in this table: it enforces the workspace-as-tenant
+shape of the observability-saas profile, so a consumer whose tenancy model
+differs drops this job and skips its seed config at seed time (see the profile
+note in the README) — the other six gates stand on their own.
 
 **Example scenario.** A PR adds:
 

@@ -29,8 +29,8 @@ the AI-observability platform frontend.
 | 13 | [`component-gallery.md`](./docs/13-component-gallery.md) | Component gallery | Extracted / proven |
 | 14 | [`mock-api-layer.md`](./docs/14-mock-api-layer.md) | Mock API layer | Extracted / proven |
 | 15 | [`architectural-guardrails.md`](./docs/15-architectural-guardrails.md) | Architectural guardrails | Net-new / prescriptive |
-| 16 | [`multitenant-performance.md`](./docs/16-multitenant-performance.md) | Multi-tenant performance | Net-new / prescriptive |
-| 17 | [`workspace-tenancy-model.md`](./docs/17-workspace-tenancy-model.md) | Workspace tenancy model | Net-new / prescriptive |
+| 16 | [`multitenant-performance.md`](./docs/16-multitenant-performance.md) | Multi-tenant performance | Net-new / profile: observability-saas |
+| 17 | [`workspace-tenancy-model.md`](./docs/17-workspace-tenancy-model.md) | Workspace tenancy model | Net-new / profile: observability-saas |
 
 Docs 00–14 are pulled from a shipped codebase (GlassFlow ClickHouse ETL UI) and
 describe patterns already proven in production. Docs 15–17 are net-new guidance
@@ -39,6 +39,15 @@ frontend — they prescribe a posture rather than extract one. Doc 17 is distill
 from GlassFlow's *first* product (a separate Preact/MobX repo) rather than the
 ClickHouse ETL UI, since that source app was single-tenant and had no tenancy
 model to extract.
+
+Docs 16–17 (and the `tenant-scope` CI gate they justify) form the
+**observability-saas profile**: they bake in *product* decisions —
+workspace-as-tenant, the entity hierarchy, roles, the `/w/[workspaceId]` URL
+scheme, onboarding — that only hold for products with that shape. Docs 00–15
+are the unconditional canon (minus the `tenant-scope` row in doc 15's gate
+table, which belongs to the profile). If your product's tenancy differs, see
+step 3 of the seeding guide below — the tenancy model should come from your
+product process (e.g. product-dev-os `product:model`), not from this pack.
 
 ## Skills index
 
@@ -59,26 +68,37 @@ Each skill lives in `skills/<name>/SKILL.md` and is invoked directly by name.
    (`docs/superpowers/plans/`, `docs/superpowers/specs/`) from building `arche-ui`
    itself, not guidance for a downstream project. It has no cross-links from any
    numbered doc and nothing in the new project depends on it.
-3. Copy `seed/mock/mock-api.ts` to `src/utils/mock-api.ts` in the new project.
+3. Decide the profile fit. Docs 16–17 and the `tenant-scope` CI gate assume a
+   multi-tenant SaaS where the workspace is the tenant (the
+   **observability-saas profile**). If that matches your product, keep
+   everything. If your tenancy model differs (single-tenant, org-as-tenant,
+   personal accounts), delete `docs/17-workspace-tenancy-model.md` (and
+   `docs/16-multitenant-performance.md` if the product is single-tenant), skip
+   `seed/ci/eslint-tenant-scope.config.mjs` in step 6, and take the tenancy
+   model from your product process (e.g. product-dev-os `product:model`)
+   instead.
+4. Copy `seed/mock/mock-api.ts` to `src/utils/mock-api.ts` in the new project.
    Adapt `isMockMode()` and `getApiUrl()` as needed, and type any fixtures against
    the same Zod schemas as the real backend responses — see
    [`docs/14-mock-api-layer.md`](./docs/14-mock-api-layer.md).
-4. Copy `seed/gallery/GalleryNav.tsx` and `seed/gallery/Section.tsx` into the new
+5. Copy `seed/gallery/GalleryNav.tsx` and `seed/gallery/Section.tsx` into the new
    project under `src/app/(main)/dev/components/` (`GalleryNav.tsx` alongside
    `layout.tsx`, `Section.tsx` inside `_components/`). Repoint the `cn` import
    (currently `@/src/utils/common.client`) and any other `@/src/...` alias paths
    to match the new project's actual alias and utility location. `layout.tsx` and
    `page.tsx` are project-authored shell code, not part of this seed — see
    [`docs/13-component-gallery.md`](./docs/13-component-gallery.md).
-5. Copy the files under `seed/ci/` (`dependency-cruiser.config.cjs`,
+6. Copy the files under `seed/ci/` (`dependency-cruiser.config.cjs`,
    `eslint-token-contract.config.mjs`, `eslint-tenant-scope.config.mjs`,
    `eslint.config.mjs`, `lighthouserc.cjs`, `size-limit.config.json`,
    `tsconfig.ci.json`) to the new project's repo root, then wire each into a
    required CI status check per the job table in
    [`docs/15-architectural-guardrails.md`](./docs/15-architectural-guardrails.md)
    (`boundaries`, `token-contract`, `tenant-scope`, `bundle-budget`,
-   `web-vitals`, `typecheck`, `lint`). Repoint the placeholder paths in each config (source root globs,
+   `web-vitals`, `typecheck`, `lint`). Skip `eslint-tenant-scope.config.mjs`
+   and the `tenant-scope` check if you dropped the profile in step 3. Repoint
+   the placeholder paths in each config (source root globs,
    build-output chunk paths, route URLs, base tsconfig path) to the new project's
    real layout — see `seed/ci/README.md` for the exact per-file repoint list.
-6. Read the docs in order, `00` through `17`, to absorb the conventions before
+7. Read the docs in order, `00` through `17`, to absorb the conventions before
    writing code.

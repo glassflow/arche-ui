@@ -262,3 +262,22 @@ Copyable near-verbatim into the new project:
 4. Author the 5 skills.
 5. Assemble `seed/` (gallery, mock, ci configs).
 6. Write the `README.md` "how to seed a new project" guide tying it together.
+
+---
+
+## Addendum — 2026-08-29 (state drift + profile note)
+
+This spec is preserved as approved on 2026-07-01. Two updates since:
+
+- **Doc 17 and a seventh gate shipped after "Finalize arche-ui".** The scope
+  stated above (docs 00–16, six Layer-1 gates) understates the shipped repo:
+  `docs/17-workspace-tenancy-model.md` and the `tenant-scope` ESLint gate
+  (`seed/ci/eslint-tenant-scope.config.mjs`) were added in commit `ddf2a8a`.
+- **Docs 16–17 + the `tenant-scope` gate are now labeled the
+  `observability-saas` profile** (2026-08-29): they encode *product* decisions
+  (workspace-as-tenant, entity hierarchy, roles, URL scheme, onboarding) that
+  hold only for products with that shape. The README's seeding guide gained a
+  profile-fit step; consumers with a different tenancy model delete doc 17
+  (and doc 16 if single-tenant), skip the `tenant-scope` gate, and take
+  tenancy from their product process (e.g. product-dev-os `product:model`).
+  Docs 00–15 remain the unconditional canon.

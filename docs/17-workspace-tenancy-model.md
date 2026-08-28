@@ -1,9 +1,16 @@
 # Workspace tenancy model
 
-> **Net-new / prescriptive** — designed for the new project. The pattern is
-> extracted from GlassFlow's *first* product (a Preact/MobX app in a separate
-> repo), not from the single-tenant source app the rest of this pack is drawn
-> from. See [Source lineage](#source-lineage).
+> **Net-new / profile: observability-saas** — designed for the new project. The
+> pattern is extracted from GlassFlow's *first* product (a Preact/MobX app in a
+> separate repo), not from the single-tenant source app the rest of this pack is
+> drawn from. See [Source lineage](#source-lineage).
+>
+> **Profile applicability.** This doc decides *product* questions — tenancy
+> boundary, entity hierarchy, roles, URL scheme, onboarding — for the
+> workspace-as-tenant SaaS profile. If your product's tenancy model differs
+> (single-tenant, org-as-tenant, personal accounts), delete this doc at seed
+> time and skip the `tenant-scope` CI gate; the tenancy model should come from
+> your product process (e.g. product-dev-os `product:model`), not from this pack.
 
 ## What & why
 
