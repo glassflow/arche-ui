@@ -1,5 +1,14 @@
 # Deployment
 
+> **Extracted / proven — deployment profile: k8s-helm.** The *image* half of
+> this doc (three-stage Dockerfile, one image for every environment,
+> `startup.sh` runtime env injection per [doc 01](./01-runtime-env-injection.md))
+> applies to any container host. The *orchestration* half (Helm chart,
+> ConfigMap checksum rollouts, init-container migrations, GHCR promotion flow)
+> assumes Kubernetes at fleet scale. Simpler projects keep the image half and
+> take orchestration from a lighter recipe — see the profile note in the
+> [README](../README.md).
+
 ## What & why
 
 The app ships as exactly one container image, and that same image runs

@@ -25,7 +25,7 @@ the AI-observability platform frontend.
 | 09 | [`component-architecture.md`](./docs/09-component-architecture.md) | Component architecture | Extracted / proven |
 | 10 | [`providers.md`](./docs/10-providers.md) | Providers | Extracted / proven |
 | 11 | [`auth0-recipe.md`](./docs/11-auth0-recipe.md) | Auth0 recipe | Extracted / proven |
-| 12 | [`deployment.md`](./docs/12-deployment.md) | Deployment | Extracted / proven |
+| 12 | [`deployment.md`](./docs/12-deployment.md) | Deployment | Extracted / proven — profile: k8s-helm |
 | 13 | [`component-gallery.md`](./docs/13-component-gallery.md) | Component gallery | Extracted / proven |
 | 14 | [`mock-api-layer.md`](./docs/14-mock-api-layer.md) | Mock API layer | Extracted / proven |
 | 15 | [`architectural-guardrails.md`](./docs/15-architectural-guardrails.md) | Architectural guardrails | Net-new / prescriptive |
@@ -48,6 +48,20 @@ are the unconditional canon (minus the `tenant-scope` row in doc 15's gate
 table, which belongs to the profile). If your product's tenancy differs, see
 step 3 of the seeding guide below — the tenancy model should come from your
 product process (e.g. product-dev-os `product:model`), not from this pack.
+
+Deployment is a second profile axis. Doc 12's *image* half (one container,
+three-stage Dockerfile, `startup.sh` runtime env injection per doc 01) applies
+to any container host, but its *orchestration* half (Helm chart, ConfigMap
+checksum rollouts, init-container migrations, GHCR promotion flow) is the
+**k8s-helm profile** — extracted from a product that needed fleet-scale
+deployment. Simpler projects that run on a single node or a managed container
+host keep the image half and take orchestration from that host's own proven
+recipe (Kamal or Docker Compose on a VPS, Fly.io, Coolify, Railway). A
+serverless target (Vercel) is a different shape entirely: it replaces doc 01's
+runtime env injection with platform env vars, so docs 01 and 12 both step
+aside there. No lightweight-deployment doc exists in this pack yet, by design —
+it gets written by extraction after the first such project ships, not
+prescribed in advance.
 
 ## Skills index
 
@@ -76,7 +90,11 @@ Each skill lives in `skills/<name>/SKILL.md` and is invoked directly by name.
    `docs/16-multitenant-performance.md` if the product is single-tenant), skip
    `seed/ci/eslint-tenant-scope.config.mjs` in step 6, and take the tenancy
    model from your product process (e.g. product-dev-os `product:model`)
-   instead.
+   instead. Deployment is the other axis of this step: doc 12's Helm/GHCR
+   orchestration is the k8s-helm profile. For a single-node or
+   managed-container target, keep the image + `startup.sh` sections of docs
+   01/12 and take orchestration from the host's recipe (Kamal, Docker Compose,
+   Fly.io, Coolify); for serverless (Vercel), skip docs 01 and 12 entirely.
 4. Copy `seed/mock/mock-api.ts` to `src/utils/mock-api.ts` in the new project.
    Adapt `isMockMode()` and `getApiUrl()` as needed, and type any fixtures against
    the same Zod schemas as the real backend responses — see
